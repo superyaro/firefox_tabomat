@@ -219,13 +219,13 @@ async function updateActionState(settings) {
   }
 
   if (settings.enabled) {
-    await browser.action.setBadgeText({ text: "." });
+    await browser.action.setBadgeText({ text: "on" });
     await browser.action.setBadgeBackgroundColor({ color: "#2f7d57" });
     await browser.action.setTitle({ title: "URL-to-Window Router: enabled" });
     return;
   }
 
-  await browser.action.setBadgeText({ text: "." });
+  await browser.action.setBadgeText({ text: "off" });
   await browser.action.setBadgeBackgroundColor({ color: "#d70022" });
   await browser.action.setTitle({ title: "URL-to-Window Router: disabled" });
 }

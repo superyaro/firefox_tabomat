@@ -33,8 +33,8 @@ Open the extension preferences from `about:addons` to configure:
 - ignored domains,
 - ordered custom routing rules.
 
-The toolbar button toggles routing on and off. It shows a compact green marker
-when routing is enabled and a compact red marker when routing is disabled.
+The toolbar button toggles routing on and off. It shows a green `on` badge when
+routing is enabled and a red `off` badge when routing is disabled.
 
 ## Path-Based Rules
 
