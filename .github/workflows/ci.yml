@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate JavaScript
+        run: |
+          node --check background.js
+          node --check settings.js
+          node --check options.js
+
+      - name: Run tests
+        run: node test-settings.js
+
+      - name: Validate manifest
+        run: python3 -m json.tool manifest.json >/dev/null
+
+      - name: Validate SVG icon
+        run: python3 -c "import xml.etree.ElementTree as ET; ET.parse('icons/url-to-window-router.svg')"
+
+      - name: Package extension
+        run: ./scripts/package.sh

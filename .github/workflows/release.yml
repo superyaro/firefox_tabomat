@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate JavaScript
+        run: |
+          node --check background.js
+          node --check settings.js
+          node --check options.js
+
+      - name: Run tests
+        run: node test-settings.js
+
+      - name: Validate manifest
+        run: python3 -m json.tool manifest.json >/dev/null
+
+      - name: Validate SVG icon
+        run: python3 -c "import xml.etree.ElementTree as ET; ET.parse('icons/url-to-window-router.svg')"
+
+      - name: Package extension
+        run: ./scripts/package.sh
+
+      - name: Publish release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PACKAGE=$(ls dist/*.xpi)
+          gh release create "$GITHUB_REF_NAME" "$PACKAGE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "URL-to-Window Router ${GITHUB_REF_NAME#v}" \
+            --generate-notes \
+          || gh release upload "$GITHUB_REF_NAME" "$PACKAGE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

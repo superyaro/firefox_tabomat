@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>URL-to-Window Router Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <img class="app-icon" src="icons/url-to-window-router.svg" alt="">
+      <div>
+        <h1>URL-to-Window Router</h1>
+        <p>Configure how new URLs open in existing project or domain windows.</p>
+      </div>
+    </header>
+
+    <form id="settings-form" class="settings-form">
+      <section class="section">
+        <h2>Routing</h2>
+        <div class="toggle-grid">
+          <label class="toggle-row">
+            <input id="enabled" type="checkbox">
+            <span>Enable routing</span>
+          </label>
+          <label class="toggle-row">
+            <input id="domain-routing-enabled" type="checkbox">
+            <span>Route by domain when no rule matches</span>
+          </label>
+          <label class="toggle-row">
+            <input id="activate-moved-tab" type="checkbox">
+            <span>Activate moved tab</span>
+          </label>
+          <label class="toggle-row">
+            <input id="focus-target-window" type="checkbox">
+            <span>Focus target window</span>
+          </label>
+          <label class="toggle-row">
+            <input id="route-private-tabs" type="checkbox">
+            <span>Route private tabs within private windows</span>
+          </label>
+          <label class="toggle-row">
+            <input id="never-route-reloaded-tabs" type="checkbox">
+            <span>Never route reloaded tabs</span>
+          </label>
+        </div>
+        <label class="field-label setting-field" for="target-tab-position">
+          <span>Moved tab position</span>
+          <select id="target-tab-position">
+            <option value="afterMatch">After the matching tab</option>
+            <option value="beforeMatch">Before the matching tab</option>
+            <option value="end">End of target window</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <div>
+            <h2>Routing Rules</h2>
+            <p class="section-note">
+              Rules are checked top to bottom before domain routing. Use them when one domain contains separate workspaces that should stay in different windows.
+            </p>
+          </div>
+          <button id="add-rule" class="secondary-button" type="button">Add Rule</button>
+        </div>
+
+        <div class="rule-help">
+          <p>
+            Use <code>!</code> to capture one path segment for the window group and <code>*</code> as the final segment for the rest of the URL.
+          </p>
+          <p>
+            <code>https://github.com/gorhill/!/*</code> captures repository names such as <code>uBlock</code>.
+          </p>
+          <p>
+            Inside one segment, <code>!-*</code> captures the part before the dash, so <code>https://youtrack.jetbrains.com/issue/!-*</code> captures <code>IDEA</code> from <code>IDEA-380201</code>.
+          </p>
+        </div>
+
+        <div id="empty-rules" class="empty-state">No custom rules configured.</div>
+        <div id="rules-list" class="rules-list"></div>
+      </section>
+
+      <section class="section">
+        <label class="field-label" for="ignored-domains">Ignored Domains</label>
+        <textarea id="ignored-domains" rows="5" spellcheck="false" placeholder="example.com&#10;internal.test"></textarea>
+      </section>
+
+      <footer class="form-footer">
+        <button class="primary-button" type="submit">Save Settings</button>
+        <button id="reset-settings" class="secondary-button" type="button">Reset</button>
+        <span id="status" class="status" role="status" aria-live="polite"></span>
+      </footer>
+    </form>
+  </main>
+
+  <template id="rule-template">
+    <section class="rule-row">
+      <div class="rule-topline">
+        <label class="toggle-row compact">
+          <input data-field="enabled" type="checkbox">
+          <span>Enabled</span>
+        </label>
+        <div class="rule-actions">
+          <button class="icon-button" data-action="move-up" type="button" title="Move up">Up</button>
+          <button class="icon-button" data-action="move-down" type="button" title="Move down">Down</button>
+          <button class="danger-button" data-action="remove" type="button">Remove</button>
+        </div>
+      </div>
+
+      <div class="rule-fields">
+        <label>
+          <span>Name</span>
+          <input data-field="name" type="text" maxlength="120" placeholder="Git project">
+        </label>
+        <label>
+          <span>Pattern</span>
+          <input data-field="pattern" type="text" spellcheck="false" placeholder="https://github.com/gorhill/!/*">
+        </label>
+      </div>
+
+      <label class="toggle-row compact">
+        <input data-field="caseSensitivePath" type="checkbox">
+        <span>Case-sensitive path</span>
+      </label>
+
+      <p class="rule-error" data-field="error"></p>
+    </section>
+  </template>
+
+  <script src="settings.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="URL-to-Window Router">
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path
+      d="M26 34c0-6 4-10 10-10h56c6 0 10 4 10 10v60c0 6-4 10-10 10H36c-6 0-10-4-10-10Z"
+      stroke="#15141a"
+      stroke-width="8"
+    />
+    <path d="M26 48h76" stroke="#15141a" stroke-width="8"/>
+    <path d="M44 24v24" stroke="#15141a" stroke-width="8"/>
+    <path d="M44 48h22" stroke="#15141a" stroke-width="8"/>
+    <path d="M43 73h42" stroke="#0060df" stroke-width="8"/>
+    <path d="M73 60l14 13-14 13" stroke="#0060df" stroke-width="8"/>
+    <path d="M51 63 41 73l10 10" stroke="#0060df" stroke-width="8"/>
+  </g>
+</svg>

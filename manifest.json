@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "URL-to-Window Router",
+  "version": "0.25.0",
+  "description": "Routes newly opened URLs into existing project or domain windows.",
+  "icons": {
+    "48": "icons/url-to-window-router.svg",
+    "96": "icons/url-to-window-router.svg"
+  },
+  "action": {
+    "default_icon": {
+      "48": "icons/url-to-window-router.svg",
+      "96": "icons/url-to-window-router.svg"
+    },
+    "default_title": "URL-to-Window Router: enabled"
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "scripts": [
+      "settings.js",
+      "background.js"
+    ]
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "domain-window-router@example.local",
+      "strict_min_version": "109.0"
+    }
+  }
+}
