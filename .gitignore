@@ -2,3 +2,4 @@ dist/
 *.xpi
 *.zip
 .DS_Store
+agents.md
