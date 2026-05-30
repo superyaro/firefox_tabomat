@@ -3,8 +3,12 @@
 [![CI](https://github.com/superyaro/firefox_tabomat/actions/workflows/ci.yml/badge.svg)](https://github.com/superyaro/firefox_tabomat/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-Firefox WebExtension that opens newly-created HTTP(S) tabs in the existing
-Firefox window for the matching project, repository, issue group, or domain.
+Firefox normally opens external links in the last active window. That gets
+messy when you switch between projects or topics during the day.
+
+URL-to-Window Router keeps related links together: when a new HTTP(S) tab opens,
+it looks for an existing Firefox window with a matching project, repository,
+issue group, or domain and moves the tab there.
 
 By default, the route is the simple registrable domain:
 

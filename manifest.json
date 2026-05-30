@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "URL-to-Window Router",
-  "version": "0.26.0",
-  "description": "Routes newly opened URLs into existing project or domain windows.",
+  "version": "0.27.0",
+  "description": "Keeps external links with the matching project, topic, or domain window.",
   "icons": {
     "48": "icons/url-to-window-router.svg",
     "96": "icons/url-to-window-router.svg"
