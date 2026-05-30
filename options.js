@@ -2,6 +2,7 @@
 
 const {
   STORAGE_KEY,
+  TARGET_TAB_POSITIONS,
   normalizeSettings,
   compileRulePattern
 } = DomainWindowRouterSettings;
@@ -29,6 +30,7 @@ initOptionsPage().catch((error) => {
 
 async function initOptionsPage() {
   bindEvents();
+  populateTargetTabPositionOptions();
   await loadSettings();
 }
 
@@ -38,6 +40,20 @@ function bindEvents() {
   resetSettingsButton.addEventListener("click", resetSettings);
   rulesList.addEventListener("click", handleRuleAction);
   rulesList.addEventListener("input", handleRuleInput);
+}
+
+function populateTargetTabPositionOptions() {
+  const options = [
+    [TARGET_TAB_POSITIONS.AFTER_MATCH, "After the matching tab"],
+    [TARGET_TAB_POSITIONS.BEFORE_MATCH, "Before the matching tab"],
+    [TARGET_TAB_POSITIONS.END, "End of target window"]
+  ];
+
+  targetTabPositionInput.textContent = "";
+
+  for (const [value, label] of options) {
+    targetTabPositionInput.append(new Option(label, value));
+  }
 }
 
 async function loadSettings() {

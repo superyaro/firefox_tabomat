@@ -2,6 +2,11 @@
 
 (function exposeSettings(global) {
   const STORAGE_KEY = "domainWindowRouterSettings";
+  const TARGET_TAB_POSITIONS = Object.freeze({
+    END: "end",
+    AFTER_MATCH: "afterMatch",
+    BEFORE_MATCH: "beforeMatch"
+  });
 
   const DEFAULT_SETTINGS = Object.freeze({
     enabled: true,
@@ -10,7 +15,7 @@
     focusTargetWindow: true,
     routePrivateTabs: true,
     neverRouteReloadedTabs: true,
-    targetTabPosition: "afterMatch",
+    targetTabPosition: TARGET_TAB_POSITIONS.AFTER_MATCH,
     ignoredDomains: [],
     routingRules: []
   });
@@ -32,7 +37,7 @@
   }
 
   function normalizeTargetTabPosition(value) {
-    const allowedValues = new Set(["end", "afterMatch", "beforeMatch"]);
+    const allowedValues = new Set(Object.values(TARGET_TAB_POSITIONS));
     return allowedValues.has(value) ? value : DEFAULT_SETTINGS.targetTabPosition;
   }
 
@@ -376,6 +381,7 @@
 
   global.DomainWindowRouterSettings = {
     STORAGE_KEY,
+    TARGET_TAB_POSITIONS,
     DEFAULT_SETTINGS,
     normalizeSettings,
     normalizeIgnoredDomains,

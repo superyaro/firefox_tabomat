@@ -5,6 +5,7 @@ const assert = require("assert/strict");
 require("./settings.js");
 
 const {
+  TARGET_TAB_POSITIONS,
   findMatchingRuleRoute,
   getRegistrableDomain,
   normalizeSettings
@@ -90,7 +91,7 @@ assert.equal(
 
 assert.equal(getRegistrableDomain("www.heise.de"), "heise.de");
 
-assert.equal(normalizeSettings({}).targetTabPosition, "afterMatch");
+assert.equal(normalizeSettings({}).targetTabPosition, TARGET_TAB_POSITIONS.AFTER_MATCH);
 assert.equal(normalizeSettings({}).neverRouteReloadedTabs, true);
 assert.equal(
   normalizeSettings({ neverRouteReloadedTabs: false }).neverRouteReloadedTabs,
@@ -98,15 +99,15 @@ assert.equal(
 );
 assert.equal(
   normalizeSettings({ targetTabPosition: "beforeMatch" }).targetTabPosition,
-  "beforeMatch"
+  TARGET_TAB_POSITIONS.BEFORE_MATCH
 );
 assert.equal(
   normalizeSettings({ targetTabPosition: "end" }).targetTabPosition,
-  "end"
+  TARGET_TAB_POSITIONS.END
 );
 assert.equal(
   normalizeSettings({ targetTabPosition: "invalid" }).targetTabPosition,
-  "afterMatch"
+  TARGET_TAB_POSITIONS.AFTER_MATCH
 );
 
 console.log("settings tests passed");

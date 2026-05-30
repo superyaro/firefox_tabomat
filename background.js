@@ -2,6 +2,7 @@
 
 const {
   STORAGE_KEY,
+  TARGET_TAB_POSITIONS,
   normalizeSettings,
   normalizeHostname,
   getRegistrableDomain,
@@ -69,7 +70,7 @@ function shouldRouteUpdatedTab(tabId) {
 }
 
 function scheduleRoute(tabId, reason, attempt, delayMs) {
-  if (!Number.isInteger(tabId) || !routingSettings.enabled) {
+  if (!isUsableTabId(tabId) || !routingSettings.enabled) {
     return;
   }
 
@@ -352,7 +353,9 @@ function findTargetPlacement({ allTabs, currentTab, currentRoute, settings }) {
       bestScore = score;
       bestPlacement = {
         windowId,
-        index: settings.targetTabPosition === "end" ? -1 : match.insertionIndex
+        index: settings.targetTabPosition === TARGET_TAB_POSITIONS.END
+          ? -1
+          : match.insertionIndex
       };
     }
   }
@@ -361,11 +364,15 @@ function findTargetPlacement({ allTabs, currentTab, currentRoute, settings }) {
 }
 
 function getInsertionIndex(candidate, targetTabPosition) {
-  if (targetTabPosition === "beforeMatch") {
+  if (targetTabPosition === TARGET_TAB_POSITIONS.BEFORE_MATCH) {
     return candidate.index;
   }
 
   return candidate.index + 1;
+}
+
+function isUsableTabId(tabId) {
+  return Number.isInteger(tabId);
 }
 
 function getRouteForUrl(url, settings) {
