@@ -1,4 +1,4 @@
-# URL-to-Window Router
+# Tabomat — URL-to-Window Router for Firefox
 
 [![CI](https://github.com/superyaro/firefox_tabomat/actions/workflows/ci.yml/badge.svg)](https://github.com/superyaro/firefox_tabomat/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
@@ -33,8 +33,8 @@ Open the extension preferences from `about:addons` to configure:
 - ignored domains,
 - ordered custom routing rules.
 
-The toolbar button toggles routing on and off. It shows a green `ON` badge when
-routing is enabled and a red `OFF` badge when routing is disabled.
+The toolbar button toggles routing on and off. It shows a compact green marker
+when routing is enabled and a compact red marker when routing is disabled.
 
 ## Path-Based Rules
 
