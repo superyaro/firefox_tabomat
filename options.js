@@ -117,12 +117,13 @@ function addRule() {
 }
 
 function handleRuleAction(event) {
-  const action = event.target.dataset.action;
-  if (!action) {
+  const actionButton = event.target.closest?.("[data-action]");
+  if (!actionButton || !rulesList.contains(actionButton)) {
     return;
   }
 
-  const row = event.target.closest(".rule-row");
+  const action = actionButton.dataset.action;
+  const row = actionButton.closest(".rule-row");
   const rows = Array.from(rulesList.querySelectorAll(".rule-row"));
   const index = rows.indexOf(row);
   if (index === -1) {

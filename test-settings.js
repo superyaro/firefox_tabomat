@@ -5,7 +5,10 @@ const assert = require("assert/strict");
 require("./settings.js");
 
 const {
+  SETTINGS_LIMITS,
   TARGET_TAB_POSITIONS,
+  compileRoutingRules,
+  compileRulePattern,
   findMatchingRuleRoute,
   getRegistrableDomain,
   normalizeSettings
@@ -29,6 +32,16 @@ assert.equal(
   findMatchingRuleRoute(
     new URL("https://github.com/gorhill/uBlock"),
     [gitProjectRule]
+  ).routeKey,
+  "github.com/gorhill/ublock"
+);
+
+const compiledGitProjectRules = compileRoutingRules([gitProjectRule]);
+assert.equal(compiledGitProjectRules.invalidRules.length, 0);
+assert.equal(
+  findMatchingRuleRoute(
+    new URL("https://github.com/gorhill/uBlock"),
+    compiledGitProjectRules.compiledRules
   ).routeKey,
   "github.com/gorhill/ublock"
 );
@@ -108,6 +121,28 @@ assert.equal(
 assert.equal(
   normalizeSettings({ targetTabPosition: "invalid" }).targetTabPosition,
   TARGET_TAB_POSITIONS.AFTER_MATCH
+);
+
+assert.equal(
+  normalizeSettings({
+    routingRules: Array.from({ length: SETTINGS_LIMITS.maxRoutingRules + 1 }, () => gitProjectRule)
+  }).routingRules.length,
+  SETTINGS_LIMITS.maxRoutingRules
+);
+
+assert.equal(
+  compileRulePattern("https://example.com/foo*bar", false).ok,
+  false
+);
+
+assert.equal(
+  compileRulePattern("https://example.com/foo**", false).ok,
+  false
+);
+
+assert.equal(
+  compileRulePattern("https://example.com/!-*", false).ok,
+  true
 );
 
 console.log("settings tests passed");

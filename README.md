@@ -156,6 +156,7 @@ node test-settings.js
   newly-created tabs whose URL arrives after the create event.
 - Private tabs are only compared with private tabs. Normal and private windows
   are never mixed.
+- Pinned, hidden, and discarded tabs are not moved.
 - A moved tab is temporarily marked so it is not moved repeatedly.
 - If the tab is moved to another window, it can be inserted at the end of that
   window, after the matching tab, or before the matching tab.
@@ -180,6 +181,8 @@ Firefox does not use `background.service_worker` for this extension.
 - Domain detection is intentionally simple for the MVP: it lowercases the
   hostname, removes a leading `www.`, and uses the last two labels. This is not
   correct for public suffix cases such as `example.co.uk`.
+- Custom rules and ignored-domain settings have size limits so corrupted or
+  oversized settings cannot make every tab event expensive to process.
 - Firefox may initialize temporary extensions after the very first browser-start
   tabs have already opened.
 

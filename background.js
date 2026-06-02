@@ -7,7 +7,7 @@ const {
   normalizeHostname,
   getRegistrableDomain,
   parseHttpUrl,
-  compileRulePattern,
+  compileRoutingRules,
   findMatchingRuleRoute
 } = DomainWindowRouterSettings;
 
@@ -17,7 +17,8 @@ const ROUTING_TIMING = Object.freeze({
   movedRecentlyMs: 3000
 });
 
-let routingSettings = normalizeSettings({});
+const initialRuntimeSettings = createRuntimeSettings({});
+let routingSettings = initialRuntimeSettings.settings;
 let ignoredDomains = new Set(routingSettings.ignoredDomains);
 let invalidRuleWarnings = new Set();
 
@@ -111,7 +112,8 @@ async function maybeRouteTab(tabId, reason, attempt) {
       return;
     }
 
-    if (tab.incognito && !settings.routePrivateTabs) {
+    if (!isTabEligibleForRouting(tab, settings)) {
+      tabsEligibleForUpdateRouting.delete(tabId);
       return;
     }
 
@@ -132,42 +134,22 @@ async function maybeRouteTab(tabId, reason, attempt) {
       return;
     }
 
-    const allTabs = await browser.tabs.query({});
-    if (hasMatchingTabInCurrentWindow({
-      allTabs,
-      currentTab: tab,
-      currentRoute,
-      settings
-    })) {
-      return;
-    }
-
-    const targetPlacement = findTargetPlacement({
-      allTabs,
+    const routePlan = await createRoutePlanForTab({
       currentTab: tab,
       currentRoute,
       settings
     });
 
-    if (!targetPlacement) {
+    if (!routePlan) {
       return;
     }
 
-    markMovedRecently(tab.id);
-    clearPendingRoute(tab.id);
-
-    await browser.tabs.move(tab.id, {
-      windowId: targetPlacement.windowId,
-      index: targetPlacement.index
-    });
-
-    if (settings.activateMovedTab) {
-      await browser.tabs.update(tab.id, { active: true });
+    const confirmedRoutePlan = await confirmRoutePlan(routePlan, settings);
+    if (!confirmedRoutePlan) {
+      return;
     }
 
-    if (settings.focusTargetWindow) {
-      await browser.windows.update(targetPlacement.windowId, { focused: true });
-    }
+    await moveTabFromRoutePlan(confirmedRoutePlan, settings);
   } catch (error) {
     console.warn("URL-to-Window Router: could not route tab", {
       tabId,
@@ -176,6 +158,103 @@ async function maybeRouteTab(tabId, reason, attempt) {
     });
   } finally {
     routingInProgress.delete(tabId);
+  }
+}
+
+async function createRoutePlanForTab({ currentTab, currentRoute, settings }) {
+  const allTabs = await browser.tabs.query({});
+
+  if (hasMatchingTabInCurrentWindow({
+    allTabs,
+    currentTab,
+    currentRoute,
+    settings
+  })) {
+    return null;
+  }
+
+  const targetPlacement = findTargetPlacement({
+    allTabs,
+    currentTab,
+    currentRoute,
+    settings
+  });
+
+  return targetPlacement
+    ? { currentTab, currentRoute, targetPlacement }
+    : null;
+}
+
+async function confirmRoutePlan(routePlan, settings) {
+  const currentTab = await getTabOrNull(routePlan.currentTab.id);
+  if (!currentTab || !isTabEligibleForRouting(currentTab, settings)) {
+    return null;
+  }
+
+  if (currentTab.windowId !== routePlan.currentTab.windowId) {
+    return null;
+  }
+
+  const currentRoute = getRouteForUrl(getTabUrl(currentTab), settings);
+  if (
+    !currentRoute ||
+    currentRoute.key !== routePlan.currentRoute.key ||
+    isIgnoredRoute(currentRoute)
+  ) {
+    return null;
+  }
+
+  return createRoutePlanForTab({
+    currentTab,
+    currentRoute,
+    settings
+  });
+}
+
+async function moveTabFromRoutePlan(routePlan, settings) {
+  const tabId = routePlan.currentTab.id;
+
+  markMovedRecently(tabId);
+  clearPendingRoute(tabId);
+
+  try {
+    await browser.tabs.move(tabId, {
+      windowId: routePlan.targetPlacement.windowId,
+      index: routePlan.targetPlacement.index
+    });
+  } catch (error) {
+    clearMovedRecently(tabId);
+    throw error;
+  }
+
+  if (settings.activateMovedTab) {
+    await safelyActivateTab(tabId);
+  }
+
+  if (settings.focusTargetWindow) {
+    await safelyFocusWindow(routePlan.targetPlacement.windowId);
+  }
+}
+
+async function safelyActivateTab(tabId) {
+  try {
+    await browser.tabs.update(tabId, { active: true });
+  } catch (error) {
+    console.warn("URL-to-Window Router: moved tab could not be activated", {
+      tabId,
+      error
+    });
+  }
+}
+
+async function safelyFocusWindow(windowId) {
+  try {
+    await browser.windows.update(windowId, { focused: true });
+  } catch (error) {
+    console.warn("URL-to-Window Router: target window could not be focused", {
+      windowId,
+      error
+    });
   }
 }
 
@@ -192,12 +271,26 @@ async function loadRoutingSettings() {
 }
 
 function setRoutingSettings(rawSettings) {
-  routingSettings = normalizeSettings(rawSettings);
+  const runtimeSettings = createRuntimeSettings(rawSettings);
+  routingSettings = runtimeSettings.settings;
   ignoredDomains = new Set(routingSettings.ignoredDomains);
-  reportInvalidRoutingRules(routingSettings.routingRules);
+  reportInvalidRoutingRules(runtimeSettings.invalidRules);
   updateActionState(routingSettings).catch((error) => {
     console.warn("URL-to-Window Router: could not update toolbar state", { error });
   });
+}
+
+function createRuntimeSettings(rawSettings) {
+  const settings = normalizeSettings(rawSettings);
+  const compiled = compileRoutingRules(settings.routingRules);
+
+  return {
+    settings: {
+      ...settings,
+      compiledRoutingRules: compiled.compiledRules
+    },
+    invalidRules: compiled.invalidRules
+  };
 }
 
 async function toggleRouterEnabled() {
@@ -230,22 +323,18 @@ async function updateActionState(settings) {
   await browser.action.setTitle({ title: "URL-to-Window Router: disabled" });
 }
 
-function reportInvalidRoutingRules(rules) {
+function reportInvalidRoutingRules(invalidRules) {
   const nextWarnings = new Set();
 
-  for (const rule of rules) {
-    const validation = compileRulePattern(rule.pattern, rule.caseSensitivePath);
-    if (validation.ok) {
-      continue;
-    }
-
-    const warningKey = `${rule.id}:${rule.pattern}:${validation.error}`;
+  for (const invalidRule of invalidRules) {
+    const rule = invalidRule.rule;
+    const warningKey = `${rule.id}:${rule.pattern}:${invalidRule.error}`;
     nextWarnings.add(warningKey);
 
     if (!invalidRuleWarnings.has(warningKey)) {
       console.warn("URL-to-Window Router: invalid routing rule ignored", {
         rule,
-        error: validation.error
+        error: invalidRule.error
       });
     }
   }
@@ -263,6 +352,20 @@ async function getTabOrNull(tabId) {
     });
     return null;
   }
+}
+
+function isTabEligibleForRouting(tab, settings) {
+  if (
+    !tab ||
+    !isUsableTabId(tab.id) ||
+    tab.pinned ||
+    tab.hidden ||
+    tab.discarded
+  ) {
+    return false;
+  }
+
+  return !(tab.incognito && !settings.routePrivateTabs);
 }
 
 function scheduleRetryIfUseful(tabId, url, reason, attempt) {
@@ -299,6 +402,7 @@ function hasMatchingTabInCurrentWindow({ allTabs, currentTab, currentRoute, sett
 function findTargetPlacement({ allTabs, currentTab, currentRoute, settings }) {
   const currentIncognito = Boolean(currentTab.incognito);
   const matchesByWindow = new Map();
+  const tabsByWindow = groupTabsByWindow(allTabs);
 
   for (const candidate of allTabs) {
     if (
@@ -319,7 +423,12 @@ function findTargetPlacement({ allTabs, currentTab, currentRoute, settings }) {
       count: 0,
       hasActiveTab: false,
       hasPinnedTab: false,
-      insertionIndex: getInsertionIndex(candidate, settings.targetTabPosition),
+      insertionIndex: getInsertionIndex(
+        candidate,
+        settings.targetTabPosition,
+        currentTab,
+        tabsByWindow.get(candidate.windowId) || []
+      ),
       insertionTabScore: -1
     };
 
@@ -334,7 +443,12 @@ function findTargetPlacement({ allTabs, currentTab, currentRoute, settings }) {
 
     if (tabScore > existing.insertionTabScore) {
       existing.insertionTabScore = tabScore;
-      existing.insertionIndex = getInsertionIndex(candidate, settings.targetTabPosition);
+      existing.insertionIndex = getInsertionIndex(
+        candidate,
+        settings.targetTabPosition,
+        currentTab,
+        tabsByWindow.get(candidate.windowId) || []
+      );
     }
 
     matchesByWindow.set(candidate.windowId, existing);
@@ -363,16 +477,50 @@ function findTargetPlacement({ allTabs, currentTab, currentRoute, settings }) {
   return bestPlacement;
 }
 
-function getInsertionIndex(candidate, targetTabPosition) {
-  if (targetTabPosition === TARGET_TAB_POSITIONS.BEFORE_MATCH) {
-    return candidate.index;
+function groupTabsByWindow(allTabs) {
+  const tabsByWindow = new Map();
+
+  for (const tab of allTabs) {
+    if (!tab || !Number.isInteger(tab.windowId)) {
+      continue;
+    }
+
+    const tabs = tabsByWindow.get(tab.windowId) || [];
+    tabs.push(tab);
+    tabsByWindow.set(tab.windowId, tabs);
   }
 
-  return candidate.index + 1;
+  for (const tabs of tabsByWindow.values()) {
+    tabs.sort((a, b) => a.index - b.index);
+  }
+
+  return tabsByWindow;
+}
+
+function getInsertionIndex(candidate, targetTabPosition, currentTab, targetWindowTabs) {
+  if (targetTabPosition === TARGET_TAB_POSITIONS.BEFORE_MATCH) {
+    return getSafeInsertionIndex(candidate.index, currentTab, targetWindowTabs);
+  }
+
+  return getSafeInsertionIndex(candidate.index + 1, currentTab, targetWindowTabs);
+}
+
+function getSafeInsertionIndex(index, currentTab, targetWindowTabs) {
+  if (currentTab.pinned) {
+    return index;
+  }
+
+  const safeIndex = Math.max(index, getFirstUnpinnedIndex(targetWindowTabs));
+  return safeIndex >= targetWindowTabs.length ? -1 : safeIndex;
+}
+
+function getFirstUnpinnedIndex(tabs) {
+  const firstUnpinned = tabs.find((tab) => !tab.pinned);
+  return firstUnpinned ? firstUnpinned.index : tabs.length;
 }
 
 function isUsableTabId(tabId) {
-  return Number.isInteger(tabId);
+  return Number.isInteger(tabId) && tabId >= 0;
 }
 
 function getRouteForUrl(url, settings) {
@@ -387,7 +535,10 @@ function getRouteForUrl(url, settings) {
     return null;
   }
 
-  const ruleMatch = findMatchingRuleRoute(parsed, settings.routingRules);
+  const ruleMatch = findMatchingRuleRoute(
+    parsed,
+    settings.compiledRoutingRules || settings.routingRules
+  );
   if (ruleMatch) {
     return {
       key: `rule:${ruleMatch.routeKey}`,
