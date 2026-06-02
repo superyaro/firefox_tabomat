@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "URL-to-Window Router",
-  "version": "0.33.0",
+  "version": "0.35.0",
   "description": "Keeps external links with the matching project, topic, or domain window.",
   "icons": {
     "48": "icons/url-to-window-router.svg",
@@ -34,13 +34,16 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "domain-window-router@example.local",
-      "strict_min_version": "109.0",
+      "id": "url-to-window-router@firefox-tabomat.superyaro",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
         "required": [
           "none"
         ]
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   }
 }
